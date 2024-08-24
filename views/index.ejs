@@ -13,6 +13,9 @@
     <input type="text" name="country" autofocus placeholder="<%= locals.error ? error :  'Enter country name'%>">
     <button type="submit">Add</button>
   </form>
+  <form action="/logout" method="post">
+    <button type="submit" class="logout">Logout</button>
+  </form>
 
   <section class="ag-canvas">
     <svg class="ag-canvas_svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
