@@ -8,6 +8,7 @@ import GoogleStrategy from "passport-google-oauth2";
 
 const app = express();
 const port = 3000;
+let currentUserId = 0;
 env.config();
 
 const db = new pg.Client({
@@ -34,7 +35,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 async function checkVisisted() {
-  const result = await db.query("SELECT country_code FROM visited_countries");
+  const result = await db.query("SELECT country_code FROM visited_countries where user_id = $1",[currentUserId]);
   let countries = [];
   result.rows.forEach((country) => {
     countries.push(country.country_code);
@@ -47,7 +48,7 @@ app.get("/", async (req, res) => {
     const countries = await checkVisisted();
     res.render("index.ejs", { countries: countries, total: countries.length });
   }else{
-    res.redirect("/login");
+    res.redirect("/auth/google");
   }
 });
 
@@ -60,7 +61,7 @@ app.post("/add", async (req, res) => {
 
   try {
     const result = await db.query(
-      "SELECT country_code FROM countries WHERE LOWER(country_name) LIKE '%' || $1 || '%';",
+      "SELECT country_code FROM countries WHERE LOWER(country_name) LIKE $1 || '%';",
       [input.toLowerCase()]
     );
 
@@ -68,8 +69,8 @@ app.post("/add", async (req, res) => {
     const countryCode = data.country_code;
     try {
       await db.query(
-        "INSERT INTO visited_countries (country_code) VALUES ($1)",
-        [countryCode]
+        "INSERT INTO visited_countries (country_code, user_id) VALUES ($1, $2)",
+        [countryCode,currentUserId]
       );
       res.redirect("/");
     } catch (err) {
@@ -121,6 +122,7 @@ passport.use("google", new GoogleStrategy({
       const newUser = await db.query("insert into users (email, password) values($1,$2)",[profile.email,"google"]);
       cb(null, newUser.rows[0]);
     }else{
+      currentUserId = result.rows[0].id;
       cb(null, result.rows[0]);
     }
   }catch(err){
